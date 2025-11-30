@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Employee</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="main-content">
+    <h2>Edit Employee</h2>
+    <form id="editForm">
+      <input type="text" name="name" placeholder="Full Name" required><br>
+      <input type="email" name="email" placeholder="Email" required><br>
+      <input type="text" name="phone" placeholder="Phone" required><br>
+      <input type="text" name="position" placeholder="Designation" required><br>
+      <input type="number" name="salary" placeholder="Salary" required><br>
+      <input type="date" name="join_date" required><br>
+      <button type="submit">Update Employee</button>
+    </form>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id");
+
+    // Load employee details
+    fetch("http://localhost:5000/employees")
+      .then(res => res.json())
+      .then(data => {
+        const emp = data.find(e => e.id == id);
+        if (emp) {
+          document.querySelector("[name=name]").value = emp.name;
+          document.querySelector("[name=email]").value = emp.email;
+          document.querySelector("[name=phone]").value = emp.phone;
+          document.querySelector("[name=position]").value = emp.position;
+          document.querySelector("[name=salary]").value = emp.salary;
+          document.querySelector("[name=join_date]").value = emp.join_date;
+        }
+      });
+
+    // Update employee
+    document.getElementById("editForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const data = Object.fromEntries(formData.entries());
+
+      fetch(`http://localhost:5000/update_employee/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      })
+        .then(res => res.json())
+        .then(response => {
+          alert(response.message || response.error);
+          window.location.href = "employees.html";
+        });
+    });
+  </script>
+</body>
+</html>

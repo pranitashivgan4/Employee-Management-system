@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Employees</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="sidebar">
+    <h2 class="logo">EMS</h2>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="employees.html" class="active">Employees</a>
+    <a href="departments.html">Departments</a>
+     <a href="attendence.html">Attendance</a>
+   
+  </div>
+
+  <div class="main-content">
+    <div class="navbar">
+      <h2>Employees</h2>
+    </div>
+
+    <a href="add-employee.html" class="add-btn">+ Add Employee</a>
+
+    <div class="table-box">
+      <table id="employeeTable">
+        <thead>
+          <tr>
+            <th>ID</th><th>Name</th><th>Email</th><th>Phone</th>
+            <th>Designation</th><th>Salary</th><th>Joining Date</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    function loadEmployees() {
+      fetch("http://localhost:5000/employees")
+        .then(res => res.json())
+        .then(data => {
+          const tbody = document.querySelector("#employeeTable tbody");
+          tbody.innerHTML = "";
+          data.forEach(emp => {
+            tbody.innerHTML += `
+              <tr>
+                <td>${emp.id}</td>
+                <td>${emp.name}</td>
+                <td>${emp.email}</td>
+                <td>${emp.phone}</td>
+                <td>${emp.position}</td>
+                <td>${emp.salary}</td>
+                <td>${emp.join_date}</td>
+                <td>
+                  <button onclick="editEmployee(${emp.id})">Edit</button>
+                  <button onclick="deleteEmployee(${emp.id})">Delete</button>
+                </td>
+              </tr>
+            `;
+          });
+        });
+    }
+
+    function deleteEmployee(id) {
+      if (!confirm("Delete this employee?")) return;
+      fetch(`http://localhost:5000/delete_employee/${id}`, { method: "DELETE" })
+        .then(res => res.json())
+        .then(response => {
+          alert(response.message || response.error);
+          loadEmployees();
+        });
+    }
+
+    function editEmployee(id) {
+      // Redirect to edit page with ID
+      window.location.href = `edit-employee.html?id=${id}`;
+    }
+
+    window.onload = loadEmployees;
+  </script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Employee</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="sidebar">
+    <h2 class="logo">EMS</h2>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="employees.html">Employees</a>
+    <a href="#">Departments</a>
+    <a href="#">Attendance</a>
+    <a href="#">Settings</a>
+    <hr>
+    <a href="#" class="logout">Logout</a>
+  </div>
+
+  <div class="main-content">
+    <div class="navbar">
+      <h2>Add Employee</h2>
+    </div>
+
+    <div class="form-container">
+      <form class="employee-form">
+
+        <div class="input-group">
+          <label>Full Name</label>
+          <input type="text" name="name" required>
+        </div>
+
+        <div class="input-group">
+          <label>Email</label>
+          <input type="email" name="email" required>
+        </div>
+
+        <div class="input-group">
+          <label>Phone</label>
+          <input type="text" name="phone" required>
+        </div>
+
+        <div class="input-group">
+          <label>Designation</label>
+          <input type="text" name="position" required>
+        </div>
+
+        <div class="input-group">
+          <label>Salary</label>
+          <input type="number" name="salary" required>
+        </div>
+
+        <div class="input-group">
+          <label>Joining Date</label>
+          <input type="date" name="join_date" required>
+        </div>
+
+        <button type="submit" class="submit-btn">Add Employee</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    document.querySelector(".employee-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      const formData = new FormData(e.target);
+      const data = Object.fromEntries(formData.entries());
+
+ fetch("http://127.0.0.1:5000/add_employee", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(data),
+})
+        .then((res) => res.json())
+        .then((response) => {
+          alert(response.message || response.error);
+          e.target.reset();
+        })
+        .catch((err) => console.error("Error:", err));
+    });
+  </script>
+
+</body>
+</html>

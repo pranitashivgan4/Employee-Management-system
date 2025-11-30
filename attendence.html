@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Attendance</title>
+  <link rel="stylesheet" href="style.css" /> <!-- Your EMS CSS -->
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2 class="logo">EMS</h2>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="employees.html">Employees</a>
+    <a href="departments.html">Departments</a>
+    <a class="active" href="attendence.html">Attendance</a>
+    <a href="settings.html">Settings</a>
+    <a class="logout" href="logout.html">Logout</a>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="navbar">
+      <h3>Attendance</h3>
+      <div class="profile">
+        <img src="profile.jpg" alt="Profile" />
+        <span>Admin</span>
+      </div>
+    </div>
+
+    <div class="table-box">
+      <label for="date" class="form-label">Select Date:</label>
+      <input type="date" id="date" class="input-group" style="margin-bottom: 15px;">
+
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="attendanceTable"></tbody>
+      </table>
+
+      <button class="add-btn" onclick="submitAttendance()">Submit Attendance</button>
+      <button class="add-btn" style="background:#10b981;" onclick="viewAttendance()">View Attendance</button>
+    </div>
+
+    <div class="table-box" id="report" style="margin-top: 30px;"></div>
+  </div>
+
+  <script>
+    // Load employees on page load
+    window.onload = function () {
+      fetch("http://localhost:5000/employees")
+        .then(res => res.json())
+        .then(data => {
+          const table = document.getElementById("attendanceTable");
+          data.forEach(emp => {
+            let row = document.createElement("tr");
+            row.innerHTML = `
+              <td>${emp.id}</td>
+              <td>${emp.name}</td>
+              <td>
+                <select class="input-group" data-id="${emp.id}" data-name="${emp.name}">
+                  <option value="Present">Present</option>
+                  <option value="Absent">Absent</option>
+                </select>
+              </td>
+            `;
+            table.appendChild(row);
+          });
+        })
+        .catch(err => console.error("Error loading employees:", err));
+    };
+
+    // Submit attendance
+    function submitAttendance() {
+      const date = document.getElementById("date").value;
+      if (!date) {
+        alert("Please select a date before submitting attendance!");
+        return;
+      }
+
+      const selects = document.querySelectorAll("select[data-id]");
+      let attendance = [];
+
+      selects.forEach(sel => {
+        attendance.push({
+          employee_id: sel.getAttribute("data-id"),
+          name: sel.getAttribute("data-name"),
+          status: sel.value,
+          date: date
+        });
+      });
+
+      fetch("http://localhost:5000/attendance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(attendance)
+      })
+        .then(res => res.json())
+        .then(data => alert(data.message || "Attendance submitted successfully!"))
+        .catch(err => console.error("Error submitting attendance:", err));
+    }
+
+    // View attendance
+    function viewAttendance() {
+      const date = document.getElementById("date").value;
+      if (!date) {
+        alert("Please select a date first!");
+        return;
+      }
+
+      fetch("http://localhost:5000/attendance/" + date)
+        .then(res => res.json())
+        .then(data => {
+          let html = `<h3>Attendance Report for ${date}</h3>`;
+
+          if (data.present && data.absent) {
+            // Expected format: { present: [...], absent: [...] }
+            html += "<h4 style='color:green;'>Present Employees</h4><ul>";
+            data.present.forEach(emp => {
+              html += `<li>${emp.id} - ${emp.name}</li>`;
+            });
+            html += "</ul>";
+
+            html += "<h4 style='color:red;'>Absent Employees</h4><ul>";
+            data.absent.forEach(emp => {
+              html += `<li>${emp.id} - ${emp.name}</li>`;
+            });
+            html += "</ul>";
+          } else if (Array.isArray(data)) {
+            // Flat list format: [{ employee_id, name, status }]
+            html += "<ul>";
+            data.forEach(emp => {
+              html += `<li>${emp.employee_id} - ${emp.name} (${emp.status})</li>`;
+            });
+            html += "</ul>";
+          } else {
+            html += "<p>No attendance records found.</p>";
+          }
+
+          document.getElementById("report").innerHTML = html;
+        })
+        .catch(err => {
+          console.error("Error viewing attendance:", err);
+          document.getElementById("report").innerHTML =
+            "<p style='color:red;'>Error loading attendance data.</p>";
+        });
+    }
+  </script>
+</body>
+</html>

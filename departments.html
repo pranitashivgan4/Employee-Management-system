@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Departments</title>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    /* Minimal modal styles (in case style.css doesn’t have them) */
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto;
+             background: rgba(0,0,0,0.5); }
+    .modal-content { background: #fff; margin: 10% auto; padding: 20px; border-radius: 8px; width: 90%; max-width: 420px; }
+    .modal .close, .modal .closeAdd { float: right; cursor: pointer; font-size: 24px; }
+    .table-box { overflow-x: auto; }
+    .navbar { display: flex; justify-content: space-between; align-items: center; }
+    .navbar button { padding: 8px 12px; }
+    label { display: block; margin: 8px 0 4px; }
+    input { width: 100%; padding: 8px; margin-bottom: 10px; }
+    button[type="submit"] { padding: 8px 12px; }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2 class="logo">EMS</h2>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="employees.html">Employees</a>
+    <a class="active" href="departments.html">Departments</a>
+     <a href="attendence.html">Attendance</a>
+     </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="navbar">
+      <h2>Departments</h2>
+      <button id="addDeptBtn">+ Add Department</button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-box">
+      <table id="departmentTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Department Name</th>
+            <th>Manager</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Rows populated dynamically -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Edit Department Modal -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <span class="close" title="Close">&times;</span>
+      <h3>Edit Department</h3>
+      <form id="editForm">
+        <input type="hidden" id="editDeptId"/>
+        <label for="editDeptName">Department Name:</label>
+        <input type="text" id="editDeptName" required/>
+        <label for="editManager">Manager:</label>
+        <input type="text" id="editManager" required/>
+        <button type="submit">Save Changes</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Department Modal -->
+  <div id="addModal" class="modal">
+    <div class="modal-content">
+      <span class="closeAdd" title="Close">&times;</span>
+      <h3>Add Department</h3>
+      <form id="addForm">
+        <label for="addDeptName">Department Name:</label>
+        <input type="text" id="addDeptName" required/>
+        <label for="addManager">Manager:</label>
+        <input type="text" id="addManager" required/>
+        <button type="submit">Add Department</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Base URL of your Flask backend
+    const BASE_URL = "http://127.0.0.1:5000";
+
+    // Utility: Safe text to prevent breaking HTML when inserting strings
+    const esc = (s) => String(s).replace(/&/g, "&amp;")
+                                .replace(/</g, "&lt;")
+                                .replace(/>/g, "&gt;")
+                                .replace(/"/g, "&quot;")
+                                .replace(/'/g, "&#39;");
+
+    // Load departments dynamically
+    function loadDepartments() {
+      fetch(`${BASE_URL}/departments`)
+        .then((res) => {
+          if (!res.ok) throw new Error(`GET /departments failed: ${res.status}`);
+          return res.json();
+        })
+        .then((data) => {
+          const tbody = document.querySelector("#departmentTable tbody");
+          tbody.innerHTML = "";
+          data.forEach((dept) => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+              <td>${esc(dept.dept_id)}</td>
+              <td>${esc(dept.dept_name)}</td>
+              <td>${esc(dept.manager)}</td>
+              <td>
+                <button class="edit">Edit</button>
+                <button class="delete">Delete</button>
+              </td>
+            `;
+            // Attach handlers
+            row.querySelector(".edit").onclick = () =>
+              openEdit(dept.dept_id, dept.dept_name, dept.manager);
+            row.querySelector(".delete").onclick = () =>
+              deleteDept(dept.dept_id);
+            tbody.appendChild(row);
+          });
+        })
+        .catch((err) => {
+          console.error("Error loading departments:", err);
+          alert("Failed to load departments. Is the backend running?");
+        });
+    }
+
+    // Open edit modal
+    function openEdit(id, name, manager) {
+      document.getElementById("editDeptId").value = id;
+      document.getElementById("editDeptName").value = name;
+      document.getElementById("editManager").value = manager;
+      document.getElementById("editModal").style.display = "block";
+    }
+
+    // Close edit modal
+    document.querySelector("#editModal .close").onclick = function () {
+      document.getElementById("editModal").style.display = "none";
+    };
+
+    // Close add modal
+    document.querySelector("#addModal .closeAdd").onclick = function () {
+      document.getElementById("addModal").style.display = "none";
+    };
+
+    // Open Add Department Modal
+    document.getElementById("addDeptBtn").onclick = function () {
+      // clear previous values
+      document.getElementById("addDeptName").value = "";
+      document.getElementById("addManager").value = "";
+      document.getElementById("addModal").style.display = "block";
+    };
+
+    // Handle Add Department Form
+    document.getElementById("addForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const name = document.getElementById("addDeptName").value.trim();
+      const manager = document.getElementById("addManager").value.trim();
+
+      if (!name || !manager) {
+        alert("Please fill all fields.");
+        return;
+      }
+
+      fetch(`${BASE_URL}/departments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dept_name: name, manager: manager }),
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error(`POST /departments failed: ${res.status}`);
+          return res.json();
+        })
+        .then((data) => {
+          alert(data.message || "Department added successfully");
+          document.getElementById("addModal").style.display = "none";
+          loadDepartments(); // refresh table
+        })
+        .catch((err) => {
+          console.error("Error adding department:", err);
+          alert("Failed to add department. Check backend logs and table schema.");
+        });
+    });
+
+    // Handle Edit Department Form
+    document.getElementById("editForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const id = document.getElementById("editDeptId").value;
+      const name = document.getElementById("editDeptName").value.trim();
+      const manager = document.getElementById("editManager").value.trim();
+
+      if (!id || !name || !manager) {
+        alert("Please fill all fields.");
+        return;
+      }
+
+      fetch(`${BASE_URL}/departments/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dept_name: name, manager: manager }),
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error(`PUT /departments/${id} failed: ${res.status}`);
+          return res.json();
+        })
+        .then((data) => {
+          alert(data.message || "Department updated successfully");
+          document.getElementById("editModal").style.display = "none";
+          loadDepartments();
+        })
+        .catch((err) => {
+          console.error("Error updating department:", err);
+          alert("Failed to update department. Check backend logs and table schema.");
+        });
+    });
+
+    // Delete department
+    function deleteDept(id) {
+      if (!confirm("Are you sure you want to delete this department?")) return;
+
+      fetch(`${BASE_URL}/departments/${id}`, { method: "DELETE" })
+        .then((res) => {
+          if (!res.ok) throw new Error(`DELETE /departments/${id} failed: ${res.status}`);
+          return res.json();
+        })
+        .then((data) => {
+          alert(data.message || "Department deleted successfully");
+          loadDepartments();
+        })
+        .catch((err) => {
+          console.error("Error deleting department:", err);
+          alert("Failed to delete department. Check backend logs and table schema.");
+        });
+    }
+
+    // Close modals when clicking outside content
+    window.onclick = function (event) {
+      const editModal = document.getElementById("editModal");
+      const addModal = document.getElementById("addModal");
+      if (event.target === editModal) editModal.style.display = "none";
+      if (event.target === addModal) addModal.style.display = "none";
+    };
+
+    // Initial load
+    document.addEventListener("DOMContentLoaded", loadDepartments);
+  </script>
+</body>
+</html>
